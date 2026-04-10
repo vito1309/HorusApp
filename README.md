@@ -129,7 +129,7 @@ Login
 
 ## Localização via GPS
 
-Ao tocar no botão 📍 no formulário:
+Ao tocar no botão de localização ao lado do campo **Localização** no formulário:
 
 1. Verifica se o GPS está ativo no dispositivo
 2. Solicita permissão de localização ao usuário
