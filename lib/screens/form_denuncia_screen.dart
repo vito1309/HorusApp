@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../models/denuncia.dart';
 import '../database/denuncia_dao.dart';
+import '../services/viacep_service.dart';
 
 class FormDenunciaScreen extends StatefulWidget {
   final Denuncia? denuncia;
@@ -19,8 +20,10 @@ class FormDenunciaScreen extends StatefulWidget {
 class _FormDenunciaScreenState extends State<FormDenunciaScreen> {
   final _nomeController = TextEditingController();
   final _localizacaoController = TextEditingController();
+  final _cepController = TextEditingController();
   String? _fotoPath;
   bool _carregandoGps = false;
+  bool _carregandoCep = false;
 
   @override
   void initState() {
@@ -29,6 +32,31 @@ class _FormDenunciaScreenState extends State<FormDenunciaScreen> {
       _nomeController.text = widget.denuncia!.nome;
       _localizacaoController.text = widget.denuncia!.localizacao;
       _fotoPath = widget.denuncia!.foto;
+    }
+  }
+
+  Future<void> _buscarCep() async {
+    if (_cepController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Digite um CEP')),
+      );
+      return;
+    }
+
+    setState(() => _carregandoCep = true);
+
+    final endereco = await ViaCepService.buscarEndereco(_cepController.text);
+
+    setState(() => _carregandoCep = false);
+
+    if (!mounted) return;
+
+    if (endereco != null) {
+      setState(() => _localizacaoController.text = endereco);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CEP não encontrado')),
+      );
     }
   }
 
@@ -141,9 +169,10 @@ class _FormDenunciaScreenState extends State<FormDenunciaScreen> {
       appBar: AppBar(
         title: Text(editando ? 'Editar Denúncia' : 'Nova Denúncia'),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _nomeController,
@@ -153,6 +182,48 @@ class _FormDenunciaScreenState extends State<FormDenunciaScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            const Text(
+              'Localização',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _cepController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Buscar por CEP',
+                      border: OutlineInputBorder(),
+                      hintText: 'Ex: 85501570',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  children: [
+                    const SizedBox(height: 4),
+                    _carregandoCep
+                        ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                        : IconButton.filled(
+                      onPressed: _buscarCep,
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Buscar CEP',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -162,7 +233,7 @@ class _FormDenunciaScreenState extends State<FormDenunciaScreen> {
                     decoration: const InputDecoration(
                       labelText: 'Localização',
                       border: OutlineInputBorder(),
-                      hintText: 'Digite ou use o GPS',
+                      hintText: 'Digite, use o CEP ou o GPS',
                     ),
                     maxLines: 2,
                   ),
